@@ -2,8 +2,12 @@ import os
 import pandas as pd
 from fuzzywuzzy import process
 import traceback
+
+directory_path = '.'
+
+
 # Function to search for a string in an Excel file
-def search_in_excel(file_path, search_string):
+def search_in_excel(file_path, search_string, threshold = 90):
     try:
         df = pd.read_excel(file_path, engine='openpyxl')
         #If over 66% of a column is NaN, drop it
@@ -20,7 +24,7 @@ def search_in_excel(file_path, search_string):
         close_matches = process.extract(search_string, df[col], limit=10)
         result = []
         for match in close_matches:
-            if (match[1] >= threshold) or (len(result)<5 and (match[1] >= threshold*0.8)):
+            if (match[1] >= threshold) or (len(result)<5 and (match[1] >= threshold*0.75)):
                 nigga_string = df.iloc[match[2]].to_string(header=False, index=False)
 
                 #remove tabs and spaces
@@ -29,7 +33,7 @@ def search_in_excel(file_path, search_string):
                 if cleaned_string.find ("00:00:00") != -1:
                     cleaned_string = cleaned_string [cleaned_string.find ("00:00:00")+9:]
                     
-                result.append ([cleaned_string, match[1]])
+                result.append ([match[2], cleaned_string])
                 #result.append ([, match[1]])                
         return result, max_avg_column
     except Exception as e:
@@ -37,7 +41,7 @@ def search_in_excel(file_path, search_string):
         print(f"Error reading {file_path}: {e}")
         return None, None
 
-def get_all_file (directory, file_extension = "xlsx", depth_max = 3):
+def get_all_file (directory, file_extension = "xlsx", depth_max = 5):
     def search(directory, current_depth):
         gay = []
         if current_depth > depth_max:
@@ -55,25 +59,102 @@ def get_all_file (directory, file_extension = "xlsx", depth_max = 3):
             return gay
     return search (directory, 0)
 # Function to search in all Excel files in a directory
-def search_in_directory(directory, search_string):
+def search_in_directory(directory, search_string, threshold):
     results = []
     for file_path in get_all_file(directory):
-        result, column_idx = search_in_excel(file_path, search_string)
+        result, column_idx = search_in_excel(file_path, search_string, threshold)
         if result is not None:
             results.append((file_path, result, column_idx))
     return results
 
-threshold = 90
-directory_path = '.'
-def wrapper_function (search_string, directory_path = directory_path):
-    search_results = search_in_directory(directory_path, search_string)
+def wrapper_function (search_string, directory_path = directory_path, threshold = 90):
+    search_results = search_in_directory(directory_path, search_string, threshold)
+    print("_"*10)
     for result in search_results:
         filename, match_result, column_idx = result
-        print(f"Found in {filename} at columnidx = {column_idx}:")
-        for a in match_result:
-            print ("    ",a)
-    
+        if (match_result is not None) and (len (match_result)!=0):
+            print(f"Found in {filename}:")
+            for row in match_result:
+                print ("    ",str(row[0]) + ":",row[1])
+            print (" "*10)
+    #return a
 # Example usage
 #search_string = 'xe đẩy'
 search_string = 'khay'
 wrapper_function (search_string)
+
+class RedirectText(object):
+    def __init__(self, text_widget):
+        self.output = text_widget
+
+    def write(self, string):
+        self.output.insert(tk.END, string)
+        self.output.see(tk.END)
+
+    def flush(self):
+        pass
+
+def submit():
+    try:
+        value = str(entry.get())
+        try:
+            threshold = int(entry2.get())
+        except ValueError:
+            print ("Loi threshold, dung threshold mac dinh la 90")
+            threshold = 90
+        wrapper_function(value, threshold = threshold)
+    except ValueError:
+        messagebox.showerror("Invalid input", "Please enter a valid number")
+import tkinter as tk
+import sys
+from tkinter import messagebox, scrolledtext
+
+def clear_output():
+    output_text.delete(1.0, tk.END)
+
+root = tk.Tk()
+root.title("My App")
+
+root.columnconfigure(0, weight=1)
+root.rowconfigure(0, weight=1)
+root.rowconfigure(1, weight=1)
+root.rowconfigure(2, weight=1)
+
+frame = tk.Frame(root)
+frame.grid(sticky="nsew")
+
+frame.columnconfigure(0, weight=2)
+frame.columnconfigure(1, weight=1)
+frame.rowconfigure(0, weight=1)
+frame.rowconfigure(1, weight=1)
+frame.rowconfigure(2, weight=1)
+frame.rowconfigure(3, weight=1)
+frame.rowconfigure(4, weight=1)
+
+label = tk.Label(frame, text="Enter a value")
+label.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+
+entry = tk.Entry(frame)
+entry.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
+
+label2 = tk.Label(frame, text="Threshold (0-100):")
+label2.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+
+entry2 = tk.Entry(frame)
+entry2.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
+entry2.insert(tk.END, '50')
+
+submit_button = tk.Button(frame, text="Submit", command=submit)
+submit_button.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+clear_button = tk.Button(frame, text="Clear Output", command=clear_output)
+clear_button.grid(row=6, column=0, padx=10, pady=10, sticky="ew")
+
+#result_label = tk.Label(frame, text="Result: ")
+#result_label.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
+
+output_text = scrolledtext.ScrolledText(frame, wrap=tk.WORD, width=50, height=15)
+output_text.grid(row=4, column=0, padx=10, pady=10, sticky="ew")
+
+sys.stdout = RedirectText(output_text)
+
+root.mainloop()
