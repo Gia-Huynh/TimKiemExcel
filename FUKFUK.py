@@ -57,16 +57,14 @@ def get_all_file (directory, file_extension = "xlsx", depth_max = 3):
 # Function to search in all Excel files in a directory
 def search_in_directory(directory, search_string):
     results = []
-    for filename in os.listdir(directory):
-        if filename.endswith(".xlsx"):
-            file_path = os.path.join(directory, filename)
-            result, column_idx = search_in_excel(file_path, search_string)
-            if result is not None:
-                results.append((filename, result, column_idx))
+    for file_path in get_all_file(directory):
+        result, column_idx = search_in_excel(file_path, search_string)
+        if result is not None:
+            results.append((file_path, result, column_idx))
     return results
 
 threshold = 90
-directory_path = './Data'
+directory_path = '.'
 def wrapper_function (search_string, directory_path = directory_path):
     search_results = search_in_directory(directory_path, search_string)
     for result in search_results:
