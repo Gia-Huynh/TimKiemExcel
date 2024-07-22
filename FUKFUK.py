@@ -117,22 +117,21 @@ root.title("My App")
 
 root.columnconfigure(0, weight=1)
 root.rowconfigure(0, weight=1)
-root.rowconfigure(1, weight=1)
-root.rowconfigure(2, weight=1)
+#root.rowconfigure(1, weight=0)
+#root.rowconfigure(2, weight=0)
 
 frame = tk.Frame(root)
 frame.grid(sticky="nsew")
 
 frame.columnconfigure(0, weight=2)
 frame.columnconfigure(1, weight=1)
-frame.rowconfigure(0, weight=1)
-frame.rowconfigure(1, weight=1)
-frame.rowconfigure(2, weight=1)
+frame.rowconfigure(0, weight=0)
+frame.rowconfigure(1, weight=0)
+frame.rowconfigure(2, weight=0)
 frame.rowconfigure(3, weight=1)
-frame.rowconfigure(4, weight=1)
 
 label = tk.Label(frame, text="Enter a value")
-label.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+label.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
 entry = tk.Entry(frame)
 entry.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
@@ -145,15 +144,12 @@ entry2.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
 entry2.insert(tk.END, '50')
 
 submit_button = tk.Button(frame, text="Submit", command=submit)
-submit_button.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+submit_button.grid(row=2, column=1, padx=10, pady=10, sticky="n")
 clear_button = tk.Button(frame, text="Clear Output", command=clear_output)
-clear_button.grid(row=6, column=0, padx=10, pady=10, sticky="ew")
+clear_button.grid(row=3, column=1, padx=10, pady=10, sticky="n")
 
-#result_label = tk.Label(frame, text="Result: ")
-#result_label.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
-
-output_text = scrolledtext.ScrolledText(frame, wrap=tk.WORD, width=50, height=15)
-output_text.grid(row=4, column=0, padx=10, pady=10, sticky="ew")
+output_text = scrolledtext.ScrolledText(frame, wrap=tk.WORD)
+output_text.grid(row=3, column=0, sticky="nsew")
 
 sys.stdout = RedirectText(output_text)
 
