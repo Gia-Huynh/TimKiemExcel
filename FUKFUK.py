@@ -28,7 +28,7 @@ def build_database (path_list):
         df = pd.read_excel(path, engine='openpyxl')
         #If over 66% of a column is NaN, drop it
         df = df.dropna (axis = 1, thresh = int(df.shape[0]*0.66))
-        # Convert all columns to string for easier searching
+        # Convert all columns to string
         df = df.map (str)
         avg_lengths = df.apply(lambda x: x.str.len().sum())
         database [path] = df
@@ -46,7 +46,6 @@ database, best_col = build_database (all_paths)
 def search_in_excel(file_path, search_string, threshold = 90):
     try:
         df = database[file_path]
-        
         col = best_col[file_path]
 
         # Use fuzzy matching to find close matches
@@ -61,9 +60,8 @@ def search_in_excel(file_path, search_string, threshold = 90):
                 #remove date format
                 if cleaned_string.find ("00:00:00") != -1:
                     cleaned_string = cleaned_string [cleaned_string.find ("00:00:00")+9:]
-                    
-                result.append ([match[2], cleaned_string])
-                #result.append ([, match[1]])                
+                
+                result.append ([match[2], cleaned_string])      
         return result, col
     except Exception as e:
         traceback.print_exc()
