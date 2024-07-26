@@ -1,7 +1,16 @@
 import os
 import traceback
 
-directory_path = '.'
+#directory_path = '.'
+# File path to the text file containing the directory path
+file_with_path = 'pathfile.txt'
+
+# Read the directory path from the file
+with open(file_with_path, 'r') as file:
+    directory_path = file.read().strip()
+
+print(f"The directory path is: {directory_path}")
+
 
 def get_all_file (directory, file_extension = "xlsx", depth_max = 3):
     def search(directory, current_depth):
@@ -25,7 +34,8 @@ def build_database (path_list):
     database = {}
     best_col = {}
     for path in path_list:
-        df = pd.read_excel(path, engine='openpyxl')
+        print (path)
+        df = pd.read_excel(path, engine='calamine') #, sheet_name = None
         #If over 66% of a column is NaN, drop it
         df = df.dropna (axis = 1, thresh = int(df.shape[0]*0.66))
         # Convert all columns to string
@@ -38,6 +48,7 @@ def build_database (path_list):
     return database, best_col
 
 all_paths = get_all_file(directory_path)
+print (all_paths[0:5])
 import pandas as pd
 from fuzzywuzzy import process
 database, best_col = build_database (all_paths)
@@ -148,7 +159,7 @@ label2.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
 
 entry2 = tk.Entry(frame)
 entry2.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
-entry2.insert(tk.END, '50')
+entry2.insert(tk.END, '90')
 
 submit_button = tk.Button(frame, text="Submit", command=submit)
 submit_button.grid(row=2, column=1, padx=10, pady=10, sticky="n")

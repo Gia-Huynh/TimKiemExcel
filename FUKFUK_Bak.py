@@ -1,24 +1,52 @@
 import os
-import pandas as pd
-from fuzzywuzzy import process
 import traceback
 
 directory_path = '.'
 
+def get_all_file (directory, file_extension = "xlsx", depth_max = 3):
+    def search(directory, current_depth):
+        gay = []
+        if current_depth > depth_max:
+            return gay
+        try:
+            for entry in os.scandir(directory):
+                if entry.is_dir(follow_symlinks=False):
+                    nigger = search(entry.path, current_depth + 1)
+                    gay = gay + nigger
+                elif entry.is_file() and entry.name.endswith('.'+file_extension) and not entry.name.startswith ("~$"):
+                    gay.append (entry.path)
+            return gay
+        except PermissionError:
+            print ("Permission Error at {directory}, skipping...")
+            return gay
+    return search (directory, 0)
+
+def build_database (path_list):
+    database = {}
+    best_col = {}
+    for path in path_list:
+        df = pd.read_excel(path, engine='openpyxl')
+        #If over 66% of a column is NaN, drop it
+        df = df.dropna (axis = 1, thresh = int(df.shape[0]*0.66))
+        # Convert all columns to string
+        df = df.map (str)
+        avg_lengths = df.apply(lambda x: x.str.len().sum())
+        database [path] = df
+        # Find the column with the maximum sum length
+        max_avg_column = avg_lengths.idxmax()        
+        best_col [path] = max_avg_column
+    return database, best_col
+
+all_paths = get_all_file(directory_path)
+import pandas as pd
+from fuzzywuzzy import process
+database, best_col = build_database (all_paths)
 
 # Function to search for a string in an Excel file
 def search_in_excel(file_path, search_string, threshold = 90):
     try:
-        df = pd.read_excel(file_path, engine='openpyxl')
-        #If over 66% of a column is NaN, drop it
-        df = df.dropna (axis = 1, thresh = int(df.shape[0]*0.66))
-        
-        # Convert all columns to string for easier searching
-        df = df.map (str)
-        avg_lengths = df.apply(lambda x: x.str.len().sum())
-        # Find the column with the maximum sum length
-        max_avg_column = avg_lengths.idxmax()        
-        col = max_avg_column
+        df = database[file_path]
+        col = best_col[file_path]
 
         # Use fuzzy matching to find close matches
         close_matches = process.extract(search_string, df[col], limit=10)
@@ -32,44 +60,26 @@ def search_in_excel(file_path, search_string, threshold = 90):
                 #remove date format
                 if cleaned_string.find ("00:00:00") != -1:
                     cleaned_string = cleaned_string [cleaned_string.find ("00:00:00")+9:]
-                    
-                result.append ([match[2], cleaned_string])
-                #result.append ([, match[1]])                
-        return result, max_avg_column
+                
+                result.append ([match[2], cleaned_string])      
+        return result, col
     except Exception as e:
         traceback.print_exc()
         print(f"Error reading {file_path}: {e}")
         return None, None
 
-def get_all_file (directory, file_extension = "xlsx", depth_max = 5):
-    def search(directory, current_depth):
-        gay = []
-        if current_depth > depth_max:
-            return gay
-        try:
-            for entry in os.scandir(directory):
-                if entry.is_dir(follow_symlinks=False):
-                    nigger = search(entry.path, current_depth + 1)
-                    gay = gay + nigger
-                elif entry.is_file() and entry.name.endswith('.'+file_extension):
-                    gay.append (entry.path)
-            return gay
-        except PermissionError:
-            print ("Permission Error at {directory}, skipping...")
-            return gay
-    return search (directory, 0)
-# Function to search in all Excel files in a directory
+
 def search_in_directory(directory, search_string, threshold):
     results = []
-    for file_path in get_all_file(directory):
+    for file_path in all_paths:
         result, column_idx = search_in_excel(file_path, search_string, threshold)
         if result is not None:
             results.append((file_path, result, column_idx))
     return results
 
 def wrapper_function (search_string, directory_path = directory_path, threshold = 90):
+    print("_"*10 + "\n" + " "*10)
     search_results = search_in_directory(directory_path, search_string, threshold)
-    print("_"*10)
     for result in search_results:
         filename, match_result, column_idx = result
         if (match_result is not None) and (len (match_result)!=0):
@@ -77,9 +87,6 @@ def wrapper_function (search_string, directory_path = directory_path, threshold 
             for row in match_result:
                 print ("    ",str(row[0]) + ":",row[1])
             print (" "*10)
-    #return a
-# Example usage
-#search_string = 'xe đẩy'
 search_string = 'khay'
 wrapper_function (search_string)
 
