@@ -35,16 +35,22 @@ def build_database (path_list):
     best_col = {}
     for path in path_list:
         print (path)
-        df = pd.read_excel(path, engine='calamine') #, sheet_name = None
-        #If over 66% of a column is NaN, drop it
-        df = df.dropna (axis = 1, thresh = int(df.shape[0]*0.66))
-        # Convert all columns to string
-        df = df.map (str)
-        avg_lengths = df.apply(lambda x: x.str.len().sum())
-        database [path] = df
-        # Find the column with the maximum sum length
-        max_avg_column = avg_lengths.idxmax()        
-        best_col [path] = max_avg_column
+        df_s = pd.read_excel(path, sheet_name = None, engine='calamine')
+        database [path] = {}
+        best_col [path] = {}
+        for i, df in df_s.items():
+            #If over 66% of a column is NaN, drop it
+            df = df.dropna (axis = 1, thresh = int(df.shape[0]*0.66))
+            # Convert all columns to string
+            df = df.map (str)
+            avg_lengths = df.apply(lambda x: x.str.len().sum())
+            # Find the column with the maximum sum length
+            try:
+                max_avg_column = avg_lengths.idxmax()        
+                database [path][i] = df
+                best_col [path][i] = max_avg_column
+            except Exception as e:
+                print (e)
     return database, best_col
 
 all_paths = get_all_file(directory_path)
@@ -56,23 +62,24 @@ database, best_col = build_database (all_paths)
 # Function to search for a string in an Excel file
 def search_in_excel(file_path, search_string, threshold = 90):
     try:
-        df = database[file_path]
-        col = best_col[file_path]
-
-        # Use fuzzy matching to find close matches
-        close_matches = process.extract(search_string, df[col], limit=10)
         result = []
-        for match in close_matches:
-            if (match[1] >= threshold) or (len(result)<5 and (match[1] >= threshold*0.75)):
-                nigga_string = df.iloc[match[2]].to_string(header=False, index=False)
+        col = 0
+        for i in best_col[file_path].keys():
+            df = database[file_path][i]
+            col = best_col[file_path][i]
+            # Use fuzzy matching to find close matches
+            close_matches = process.extract(search_string, df[col], limit=10)
+            for match in close_matches:
+                if (match[1] >= threshold) or (len(result)<5 and (match[1] >= threshold*0.75)):
+                    nigga_string = df.iloc[match[2]].to_string(header=False, index=False)
 
-                #remove tabs and spaces
-                cleaned_string = ' '.join(nigga_string.split())
-                #remove date format
-                if cleaned_string.find ("00:00:00") != -1:
-                    cleaned_string = cleaned_string [cleaned_string.find ("00:00:00")+9:]
-                
-                result.append ([match[2], cleaned_string])      
+                    #remove tabs and spaces
+                    cleaned_string = ' '.join(nigga_string.split())
+                    #remove date format
+                    if cleaned_string.find ("00:00:00") != -1:
+                        cleaned_string = cleaned_string [cleaned_string.find ("00:00:00")+9:]
+                    
+                    result.append ([match[2], cleaned_string])      
         return result, col
     except Exception as e:
         traceback.print_exc()
